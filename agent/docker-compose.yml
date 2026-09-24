@@ -1,0 +1,32 @@
+# 在「每台被監控的機器」上使用此檔案
+# 用法：cp .env.example .env，改好 MONITOR_URL / REPORT_SECRET 後
+#       docker compose pull && docker compose up -d
+
+services:
+  agent:
+    image: ghcr.io/${GHCR_OWNER:-qzqmn}/vps-monitor-agent:latest
+    # 想改原始碼後自己建置測試，就把上面的 image: 註解掉、改用：
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    container_name: vps-monitor-agent
+    restart: unless-stopped
+    init: true
+
+    # Linux 上建議 host，網卡流量統計較準
+    network_mode: host
+
+    environment:
+      # 必填：中央端地址（不要末尾斜線也可）
+      - MONITOR_URL=${MONITOR_URL:?請先執行 cp .env.example .env 並填 MONITOR_URL}
+      # 必填：與中央端 docker-compose 的 REPORT_SECRET 相同
+      - REPORT_SECRET=${REPORT_SECRET:?請先執行 cp .env.example .env 並填 REPORT_SECRET}
+      # 可選：上報間隔秒數（預設 20）
+      - INTERVAL_SECS=${INTERVAL_SECS:-20}
+      # 可選：不填則自動用本機 hostname 作為 AGENT_ID / 顯示名
+      - AGENT_ID=${AGENT_ID:-}
+      - AGENT_NAME=${AGENT_NAME:-}
+      # 可選：手動指定要統計流量的網卡（逗號分隔，例如 eth0,ens18）。
+      # 不填則自動排除 lo/docker/veth/tailscale/wg 等虛擬網卡。
+      - NET_IFACES=${NET_IFACES:-}
+      - RUST_LOG=info
